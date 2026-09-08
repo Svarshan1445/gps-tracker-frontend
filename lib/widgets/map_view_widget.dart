@@ -76,6 +76,56 @@ class _MapViewWidgetState extends State<MapViewWidget> {
     }
   }
 
+  List<Polyline> _buildHistoryPolylines(List<GPSRecordModel> history) {
+    if (history.isEmpty) return [];
+
+    // Sort chronologically (oldest to newest)
+    final sorted = List<GPSRecordModel>.from(history)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    // Keep only the recent 15 breadcrumb pings directly trailing behind the vehicle
+    final recent = sorted.length > 15 ? sorted.sublist(sorted.length - 15) : sorted;
+
+    final List<Polyline> polylines = [];
+    List<LatLng> currentSegment = [];
+
+    for (int i = 0; i < recent.length; i++) {
+      final pt = LatLng(recent[i].latitude, recent[i].longitude);
+      if (currentSegment.isEmpty) {
+        currentSegment.add(pt);
+      } else {
+        final prev = currentSegment.last;
+        // If consecutive points jump more than ~1.5 km (loop reset or jump), start new segment
+        final dLat = (prev.latitude - pt.latitude).abs();
+        final dLon = (prev.longitude - pt.longitude).abs();
+        if (dLat > 0.015 || dLon > 0.015) {
+          if (currentSegment.length > 1) {
+            polylines.add(Polyline(
+              points: currentSegment,
+              strokeWidth: 3.5,
+              color: Colors.amber.shade800.withOpacity(0.75),
+              isDotted: true,
+            ));
+          }
+          currentSegment = [pt];
+        } else {
+          currentSegment.add(pt);
+        }
+      }
+    }
+
+    if (currentSegment.length > 1) {
+      polylines.add(Polyline(
+        points: currentSegment,
+        strokeWidth: 3.5,
+        color: Colors.amber.shade800.withOpacity(0.75),
+        isDotted: true,
+      ));
+    }
+
+    return polylines;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Build route polyline points
@@ -84,10 +134,8 @@ class _MapViewWidgetState extends State<MapViewWidget> {
             .toList() ??
         [];
 
-    // Build historical breadcrumbs
-    final List<LatLng> historyPoints = widget.history
-        .map((h) => LatLng(h.latitude, h.longitude))
-        .toList();
+    // Build clean historical breadcrumbs segments
+    final List<Polyline> historyPolylines = _buildHistoryPolylines(widget.history);
 
     // Build markers for stops
     final List<Marker> stopMarkers = widget.route?.waypoints.map((wp) {
@@ -214,17 +262,8 @@ class _MapViewWidgetState extends State<MapViewWidget> {
                 ],
               ),
             // Historical breadcrumbs trail
-            if (historyPoints.isNotEmpty)
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: historyPoints,
-                    strokeWidth: 3.0,
-                    color: Colors.amber.shade800.withOpacity(0.7),
-                    isDotted: true,
-                  ),
-                ],
-              ),
+            if (historyPolylines.isNotEmpty)
+              PolylineLayer(polylines: historyPolylines),
             // Stops
             MarkerLayer(markers: stopMarkers),
             // Vehicle Pin
