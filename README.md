@@ -79,19 +79,24 @@ frontend/
    - Dynamic server URL switcher (supports Android emulator `10.0.2.2`, Web/Desktop `localhost`, or custom LAN IP).
 2. **Interactive Map View (`flutter_map`)**:
    - Free, open-source **OpenStreetMap** raster tiles (no Google Maps API key or billing required).
-   - Draws route polylines in distinct brand colors (Indigo for Route A, Amber for Route B).
+   - Draws route polylines in distinct brand colors.
    - Shows numbered stops/waypoints.
    - Renders a pulsing, heading-oriented vehicle pin that smoothly tracks live coordinates.
-   - "Center on Vehicle" FAB button.
-3. **Live Telemetry & Transit Intelligence**:
+   - Floating Action Buttons: **Fit Route to Screen**, **Center on Vehicle**, and **Toggle GPS Trail** (smooth solid trail on/off).
+3. **Dynamic Multi-Corridor Switching**:
+   - Quick-switch corridor pills on top of the live map (`[ROUTE-A]`, `[ROUTE-B]`, `[ROUTE-C]`, `[ROUTE-D]`, `[ROUTE-E]`).
+   - Single-tap route switching updates PostgreSQL backend, provisions vehicle, and smoothly pans map camera.
+   - Interactive Route Explorer & Search bottom sheet.
+4. **Live Telemetry & Transit Intelligence**:
    - Live speedometer gauge (`km/h`).
    - Compass heading with cardinal direction (`180° S`).
    - Real-time **ETA to Next Stop** calculation (`Next: Vidhana Soudha • ~2 mins (0.8 km)`).
    - Automatic **Over-speeding Caution Alert** if vehicle exceeds speed threshold.
-4. **Historical Breadcrumb Log**:
-   - Tabular and timeline view of historical GPS coordinates and speeds.
-5. **Comprehensive Error Handling**:
+5. **Historical Breadcrumb Log**:
+   - Tabular and timeline view of historical GPS coordinates, speeds, and timestamps on the dedicated `HistoryScreen`.
+6. **Comprehensive Error Handling & Security**:
    - Gracefully intercepts and displays `401 Unauthorized`, `403 Forbidden`, and connection drop alerts.
+   - Strict multi-tenant isolation prevents access to unassigned routes.
 
 ---
 
