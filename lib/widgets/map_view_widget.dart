@@ -26,6 +26,7 @@ class MapViewWidget extends StatefulWidget {
 
 class _MapViewWidgetState extends State<MapViewWidget> {
   final MapController _mapController = MapController();
+  bool _showBreadcrumbs = false;
 
   LatLng get _initialCenter {
     if (widget.latestGps != null) {
@@ -77,14 +78,14 @@ class _MapViewWidgetState extends State<MapViewWidget> {
   }
 
   List<Polyline> _buildHistoryPolylines(List<GPSRecordModel> history) {
-    if (history.isEmpty) return [];
+    if (!_showBreadcrumbs || history.isEmpty) return [];
 
     // Sort chronologically (oldest to newest)
     final sorted = List<GPSRecordModel>.from(history)
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    // Keep only the recent 15 breadcrumb pings directly trailing behind the vehicle
-    final recent = sorted.length > 15 ? sorted.sublist(sorted.length - 15) : sorted;
+    // Keep only the recent 6 pings directly trailing behind the vehicle
+    final recent = sorted.length > 6 ? sorted.sublist(sorted.length - 6) : sorted;
 
     final List<Polyline> polylines = [];
     List<LatLng> currentSegment = [];
@@ -95,16 +96,15 @@ class _MapViewWidgetState extends State<MapViewWidget> {
         currentSegment.add(pt);
       } else {
         final prev = currentSegment.last;
-        // If consecutive points jump more than ~1.5 km (loop reset or jump), start new segment
+        // If consecutive points jump more than ~500m (corridor switch or reset), split cleanly
         final dLat = (prev.latitude - pt.latitude).abs();
         final dLon = (prev.longitude - pt.longitude).abs();
-        if (dLat > 0.015 || dLon > 0.015) {
+        if (dLat > 0.005 || dLon > 0.005) {
           if (currentSegment.length > 1) {
             polylines.add(Polyline(
               points: currentSegment,
               strokeWidth: 3.5,
-              color: Colors.amber.shade800.withOpacity(0.75),
-              isDotted: true,
+              color: Colors.amber.shade700.withOpacity(0.7),
             ));
           }
           currentSegment = [pt];
@@ -118,8 +118,7 @@ class _MapViewWidgetState extends State<MapViewWidget> {
       polylines.add(Polyline(
         points: currentSegment,
         strokeWidth: 3.5,
-        color: Colors.amber.shade800.withOpacity(0.75),
-        isDotted: true,
+        color: Colors.amber.shade700.withOpacity(0.7),
       ));
     }
 
@@ -277,6 +276,19 @@ class _MapViewWidgetState extends State<MapViewWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              FloatingActionButton.small(
+                heroTag: 'toggle_breadcrumbs_fab',
+                backgroundColor: _showBreadcrumbs ? Colors.amber.shade700 : Colors.white,
+                foregroundColor: _showBreadcrumbs ? Colors.white : Colors.indigo.shade800,
+                onPressed: () {
+                  setState(() {
+                    _showBreadcrumbs = !_showBreadcrumbs;
+                  });
+                },
+                tooltip: _showBreadcrumbs ? 'Hide GPS Trail' : 'Show GPS Trail',
+                child: Icon(_showBreadcrumbs ? Icons.timeline : Icons.timeline_outlined),
+              ),
+              const SizedBox(height: 8),
               FloatingActionButton.small(
                 heroTag: 'fit_route_fab',
                 backgroundColor: Colors.white,
